@@ -7,12 +7,16 @@
 
 import argparse
 import os
+from collections import OrderedDict
 
 from flyai.data_helper import DataHelper
 from flyai.framework import FlyAI
+from torch.utils.data import DataLoader
 
 from datasets.dataset import FingerPrintDataset
+from model.osnet import osnet_x1_0
 from path import MODEL_PATH
+from utils.utils import load_pretrained_weights, build_optimizer, build_scheduler
 
 '''
 此项目为FlyAI2.0新版本框架，数据读取，评估方式与之前不同
@@ -50,19 +54,32 @@ class Main(FlyAI):
         处理数据，没有可不写。
         :return:
         '''
-        dataset = FingerPrintDataset()
-        dataset.process_data()
+        pass
+
 
     def train(self):
         '''
         训练模型，必须实现此方法
         :return:
         '''
-        pass
+
+        dataset = FingerPrintDataset()
+        model = osnet_x1_0(num_classes=dataset.num_classes, pretrained=True, loss='softmax', use_gpu=True)
+        # print(model)
+        load_pretrained_weights(model, './weights/pretrained/osnet_x1_0_imagenet.pth')
+        model = model.cuda()
+        optimizer = build_optimizer(model)
+        max_epoch = args.EPOCHS
+        batch_size = args.BATCH
+        scheduler = build_scheduler(optimizer, lr_scheduler='cosine', max_epoch=max_epoch)
+        model.train()
+        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        
+
 
 
 if __name__ == '__main__':
     main = Main()
-    main.deal_with_data()
+    # main.deal_with_data()
     # main.download_data()
-    # main.train()
+    main.train()
