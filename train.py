@@ -11,12 +11,15 @@ from collections import OrderedDict
 
 from flyai.data_helper import DataHelper
 from flyai.framework import FlyAI
+from torch import nn
+from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
 from datasets.dataset import FingerPrintDataset
 from model.osnet import osnet_x1_0
 from path import MODEL_PATH
 from utils.utils import load_pretrained_weights, build_optimizer, build_scheduler
+from torch.utils.tensorboard import SummaryWriter
 
 '''
 此项目为FlyAI2.0新版本框架，数据读取，评估方式与之前不同
@@ -35,7 +38,7 @@ if not os.path.exists(MODEL_PATH):
 # 项目的超参，不使用可以删除
 parser = argparse.ArgumentParser()
 parser.add_argument("-e", "--EPOCHS", default=10, type=int, help="train epochs")
-parser.add_argument("-b", "--BATCH", default=32, type=int, help="batch size")
+parser.add_argument("-b", "--BATCH", default=8, type=int, help="batch size")
 args = parser.parse_args()
 
 
@@ -56,7 +59,6 @@ class Main(FlyAI):
         '''
         pass
 
-
     def train(self):
         '''
         训练模型，必须实现此方法
@@ -72,10 +74,25 @@ class Main(FlyAI):
         max_epoch = args.EPOCHS
         batch_size = args.BATCH
         scheduler = build_scheduler(optimizer, lr_scheduler='cosine', max_epoch=max_epoch)
+        criterion = nn.CrossEntropyLoss()
         model.train()
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        
-
+        cudnn.benchmark = True
+        # writer = SummaryWriter(log_dir='./log')
+        for epoch in range(max_epoch):
+            for index, data in enumerate(train_loader):
+                im, label = data
+                im = im.cuda()
+                label = label.cuda()
+                optimizer.zero_grad()
+                out = model(im)
+                loss = criterion(out, label)
+                loss.backward()
+                optimizer.step()
+                if index % 10 == 0:
+                    print("Epoch: [{}/{}][{}/{}]  Loss {:.4f}".format(epoch+1, max_epoch, index+1,
+                                                                                  len(train_loader), loss))
+        scheduler.step()
 
 
 if __name__ == '__main__':

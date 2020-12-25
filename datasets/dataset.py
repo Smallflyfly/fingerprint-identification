@@ -7,6 +7,7 @@
 import os
 
 import pandas
+from PIL import Image
 from torch.utils.data import Dataset
 from path import DATA_PATH
 import torchvision.transforms as transforms
@@ -23,16 +24,23 @@ class FingerPrintDataset(Dataset):
         self.label_map = {}
         self.transform = transforms.Compose(
             [
-                transforms.Resize((256, 256)),
-                transforms.RandomHorizontalFlip,
+                transforms.Resize((192, 206)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
                 transforms.ToTensor(),
+                transforms.Normalize(0.568, 0.389)
             ]
         )
 
         self.process_data()
 
     def __getitem__(self, index):
-        return self.train_images[index], self.labels[index]
+        image = self.train_images[index]
+        label = self.labels[index]
+        im = Image.open(os.path.join(self.image_path, image)).convert('L')
+        im = self.transform(im)
+        # print(im.shape)
+        return im, label
 
     def process_data(self):
         images = os.listdir(self.image_path)
