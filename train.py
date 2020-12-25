@@ -9,6 +9,7 @@ import argparse
 import os
 from collections import OrderedDict
 
+import torch
 from flyai.data_helper import DataHelper
 from flyai.framework import FlyAI
 from torch import nn
@@ -94,6 +95,8 @@ class Main(FlyAI):
                                                                                   len(train_loader), loss))
                     n_iter = epoch*len(train_loader) + index
                     writer.add_scalar('loss', loss, n_iter)
+                    # save checkpoint
+                    torch.save(model.state_dict(), './weights/net_'+str(epoch)+'.pth')
             scheduler.step()
         writer.close()
 
