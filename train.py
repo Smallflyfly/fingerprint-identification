@@ -78,7 +78,7 @@ class Main(FlyAI):
         model.train()
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         cudnn.benchmark = True
-        # writer = SummaryWriter(log_dir='./log')
+        writer = SummaryWriter(log_dir='./log')
         for epoch in range(max_epoch):
             for index, data in enumerate(train_loader):
                 im, label = data
@@ -92,7 +92,10 @@ class Main(FlyAI):
                 if index % 10 == 0:
                     print("Epoch: [{}/{}][{}/{}]  Loss {:.4f}".format(epoch+1, max_epoch, index+1,
                                                                                   len(train_loader), loss))
-        scheduler.step()
+                    n_iter = epoch*len(train_loader) + index
+                    writer.add_scalar('loss', loss, n_iter)
+            scheduler.step()
+        writer.close()
 
 
 if __name__ == '__main__':
