@@ -7,6 +7,7 @@ from torch.backends import cudnn
 from datasets.dataset import FingerPrintDataset
 from model.osnet import osnet_x1_0
 from utils.utils import load_pretrained_weights
+import numpy as np
 
 
 class Prediction(FlyAI):
@@ -39,9 +40,11 @@ class Prediction(FlyAI):
         im2 = im2.cuda()
         out1 = model(im1)
         out1 = torch.sigmoid(out1).cpu().detach().numpy()
+        out1 = np.argmax(out1)
         print(out1)
         out2 = model(im2)
         out2 = torch.sigmoid(out2).cpu().detach().numpy()
+        out2 = np.argmax(out2)
         print(out2)
         return {"label":"1"}
 
