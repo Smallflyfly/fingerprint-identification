@@ -6,6 +6,7 @@ from torch.backends import cudnn
 
 from datasets.dataset import FingerPrintDataset
 from model.osnet import osnet_x1_0
+from utils.compare import feature_compare
 from utils.utils import load_pretrained_weights
 import numpy as np
 
@@ -45,6 +46,7 @@ class Prediction(FlyAI):
         im2 = im2.cuda()
         out1 = model(im1).cpu().detach().numpy()
         out2 = model(im2).cpu().detach().numpy()
+        res = feature_compare(out1, out2)
         return {"label":"1"}
 
 
