@@ -38,8 +38,8 @@ if not os.path.exists(MODEL_PATH):
 
 # 项目的超参，不使用可以删除
 parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--EPOCHS", default=10, type=int, help="train epochs")
-parser.add_argument("-b", "--BATCH", default=8, type=int, help="batch size")
+parser.add_argument("-e", "--EPOCHS", default=50, type=int, help="train epochs")
+parser.add_argument("-b", "--BATCH", default=16, type=int, help="batch size")
 args = parser.parse_args()
 
 

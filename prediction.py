@@ -26,7 +26,10 @@ class Prediction(FlyAI):
         :return: 模型预测成功之后返回给系统样例 {"label":"1"}
         '''
         dataset = FingerPrintDataset()
+        print(dataset.num_classes)
         model = self.load_model(num_classes=dataset.num_classes)
+        # print(model)
+        # fang[-1]
         model = model.cuda()
         model.eval()
         cudnn.benchmark = True
@@ -40,19 +43,11 @@ class Prediction(FlyAI):
         im2 = im2.unsqueeze(0)
         im1 = im1.cuda()
         im2 = im2.cuda()
-        out1 = model(im1)
-        out1 = torch.sigmoid(out1).cpu().detach().numpy()
-        out1 = np.argmax(out1)
-        print(out1)
-        print(dataset.label_map[im1_name])
-        out2 = model(im2)
-        out2 = torch.sigmoid(out2).cpu().detach().numpy()
-        out2 = np.argmax(out2)
-        print(out2)
-        print(dataset.label_map[im2_name])
+        out1 = model(im1).cpu().detach().numpy()
+        out2 = model(im2).cpu().detach().numpy()
         return {"label":"1"}
 
 
 if __name__ == '__main__':
     prediction = Prediction()
-    prediction.predict('image/4900.BMP', 'image/12634.BMP')
+    prediction.predict('image/13868.BMP', 'image/1695.BMP')
