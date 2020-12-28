@@ -33,6 +33,8 @@ class Prediction(FlyAI):
         im2 = Image.open('./data/input/FingerprintIdentification/'+image_path_2).convert('L')
         im1 = dataset.transform(im1)
         im2 = dataset.transform(im2)
+        im1 = im1.unsqueeze(0)
+        im2 = im2.unsqueeze(0)
         im1 = im1.cuda()
         im2 = im2.cuda()
         out1 = model(im1)
