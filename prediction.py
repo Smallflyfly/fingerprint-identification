@@ -29,13 +29,11 @@ class Prediction(FlyAI):
         dataset = FingerPrintDataset()
         print(dataset.num_classes)
         model = self.load_model(num_classes=dataset.num_classes)
-        # print(model)
-        # fang[-1]
         model = model.cuda()
         model.eval()
         cudnn.benchmark = True
-        im1_name = image_path_1.split('/')[1]
-        im2_name = image_path_2.split('/')[1]
+        # im1_name = image_path_1.split('/')[1]
+        # im2_name = image_path_2.split('/')[1]
         im1 = Image.open('./data/input/FingerprintIdentification/'+image_path_1).convert('L')
         im2 = Image.open('./data/input/FingerprintIdentification/'+image_path_2).convert('L')
         im1 = dataset.transform(im1)
@@ -44,12 +42,13 @@ class Prediction(FlyAI):
         im2 = im2.unsqueeze(0)
         im1 = im1.cuda()
         im2 = im2.cuda()
-        out1 = model(im1).cpu().detach().numpy()
-        out2 = model(im2).cpu().detach().numpy()
+        out1 = model(im1).cpu().detach().numpy()[0]
+        out2 = model(im2).cpu().detach().numpy()[0]
         res = feature_compare(out1, out2)
-        return {"label":"1"}
+        same = 1 if res > 0.9 else 0
+        return {"label": same}
 
 
 if __name__ == '__main__':
     prediction = Prediction()
-    prediction.predict('image/13868.BMP', 'image/1695.BMP')
+    prediction.predict('image/9103.BMP', 'image/12634.BMP')
