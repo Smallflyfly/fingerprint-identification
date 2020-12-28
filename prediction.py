@@ -36,7 +36,7 @@ class Prediction(FlyAI):
         im1 = im1.cuda()
         im2 = im2.cuda()
         out1 = model(im1)
-        out1 =torch.sigmoid(out1).cpu().detach().numpy()
+        out1 = torch.sigmoid(out1).cpu().detach().numpy()
         print(out1)
         out2 = model(im2)
         out2 = torch.sigmoid(out2).cpu().detach().numpy()
