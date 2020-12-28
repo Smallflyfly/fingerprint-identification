@@ -30,6 +30,8 @@ class Prediction(FlyAI):
         model = model.cuda()
         model.eval()
         cudnn.benchmark = True
+        im1_name = image_path_1.split('/')[1]
+        im2_name = image_path_2.split('/')[1]
         im1 = Image.open('./data/input/FingerprintIdentification/'+image_path_1).convert('L')
         im2 = Image.open('./data/input/FingerprintIdentification/'+image_path_2).convert('L')
         im1 = dataset.transform(im1)
@@ -42,10 +44,12 @@ class Prediction(FlyAI):
         out1 = torch.sigmoid(out1).cpu().detach().numpy()
         out1 = np.argmax(out1)
         print(out1)
+        print(dataset.label_map[im1_name])
         out2 = model(im2)
         out2 = torch.sigmoid(out2).cpu().detach().numpy()
         out2 = np.argmax(out2)
         print(out2)
+        print(dataset.label_map[im2_name])
         return {"label":"1"}
 
 
