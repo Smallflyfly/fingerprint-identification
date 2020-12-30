@@ -4,7 +4,7 @@ from PIL import Image
 from flyai.framework import FlyAI
 from torch.backends import cudnn
 
-from datasets.dataset import FingerPrintDataset
+from datasets.fingerprint_dataset import FingerPrintDataset
 from model.osnet import osnet_x1_0
 from utils.compare import feature_compare
 from utils.utils import load_pretrained_weights
@@ -46,7 +46,7 @@ class Prediction(FlyAI):
         out2 = model(im2).cpu().detach().numpy()[0]
         res = feature_compare(out1, out2)
         same = 1 if res > 0.9 else 0
-        return {"label": same}
+        return {"label": str(same)}
 
 
 if __name__ == '__main__':

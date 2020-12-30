@@ -7,102 +7,108 @@
 
 import argparse
 import os
-from collections import OrderedDict
 
 import torch
-from flyai.data_helper import DataHelper
-from flyai.framework import FlyAI
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from datasets.dataset import FingerPrintDataset
+from datasets.scoofing_dataset import SocoFing
 from model.osnet import osnet_x1_0
 from path import MODEL_PATH
 from utils.utils import load_pretrained_weights, build_optimizer, build_scheduler
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
-'''
-此项目为FlyAI2.0新版本框架，数据读取，评估方式与之前不同
-2.0框架不再限制数据如何读取
-样例代码仅供参考学习，可以自己修改实现逻辑。
-模版项目下载支持 PyTorch、Tensorflow、Keras、MXNET、scikit-learn等机器学习框架
-第一次使用请看项目中的：FlyAI2.0竞赛框架使用说明.html
-使用FlyAI提供的预训练模型可查看：https://www.flyai.com/models
-学习资料可查看文档中心：https://doc.flyai.com/
-常见问题：https://doc.flyai.com/question.html
-遇到问题不要着急，添加小姐姐微信，扫描项目里面的：FlyAI小助手二维码-小姐姐在线解答您的问题.png
-'''
+
 if not os.path.exists(MODEL_PATH):
     os.makedirs(MODEL_PATH)
 
 # 项目的超参，不使用可以删除
 parser = argparse.ArgumentParser()
 parser.add_argument("-e", "--EPOCHS", default=50, type=int, help="train epochs")
-parser.add_argument("-b", "--BATCH", default=16, type=int, help="batch size")
+parser.add_argument("-b", "--BATCH", default=4, type=int, help="batch size")
 args = parser.parse_args()
 
 
-class Main(FlyAI):
-    '''
-    项目中必须继承FlyAI类，否则线上运行会报错。
-    '''
+def train():
+    max_epoch = args.EPOCHS
+    train_batch_size = args.BATCH
+    valid_test_batch_size = 1
 
-    def download_data(self):
-        # 根据数据ID下载训练数据
-        data_helper = DataHelper()
-        data_helper.download_from_ids("FingerprintIdentification")
+    train_dataset = SocoFing(mode='train')
+    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
 
-    def deal_with_data(self):
-        '''
-        处理数据，没有可不写。
-        :return:
-        '''
-        pass
+    valid_dataset = SocoFing(mode='valid')
+    valid_loader = DataLoader(valid_dataset, batch_size=valid_test_batch_size)
 
-    def train(self):
-        '''
-        训练模型，必须实现此方法
-        :return:
-        '''
+    test_dataset = SocoFing(mode='test')
+    test_loader = DataLoader(test_dataset, batch_size=valid_test_batch_size)
 
-        dataset = FingerPrintDataset()
-        model = osnet_x1_0(num_classes=dataset.num_classes, pretrained=True, loss='softmax', use_gpu=True)
-        # print(model)
-        load_pretrained_weights(model, './weights/pretrained/osnet_x1_0_imagenet.pth')
-        model = model.cuda()
-        optimizer = build_optimizer(model)
-        max_epoch = args.EPOCHS
-        batch_size = args.BATCH
-        scheduler = build_scheduler(optimizer, lr_scheduler='cosine', max_epoch=max_epoch)
-        criterion = nn.CrossEntropyLoss()
+    model = osnet_x1_0(num_classes=600, pretrained=True, loss='softmax', use_gpu=True)
+    model = model.cuda()
+
+    optimizer = build_optimizer(model)
+
+    scheduler = build_scheduler(optimizer, lr_scheduler='cosine', max_epoch=max_epoch)
+    criterion = nn.CrossEntropyLoss()
+
+    cudnn.benchmark = True
+    writer = SummaryWriter(log_dir='./log')
+    for epoch in tqdm(max_epoch):
         model.train()
-        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        cudnn.benchmark = True
-        writer = SummaryWriter(log_dir='./log')
-        for epoch in range(max_epoch):
-            for index, data in enumerate(train_loader):
-                im, label = data
-                im = im.cuda()
-                label = label.cuda()
-                optimizer.zero_grad()
-                out = model(im)
-                loss = criterion(out, label)
-                loss.backward()
-                optimizer.step()
-                if index % 10 == 0:
-                    print("Epoch: [{}/{}][{}/{}]  Loss {:.4f}".format(epoch+1, max_epoch, index+1,
-                                                                                  len(train_loader), loss))
-                    n_iter = epoch*len(train_loader) + index
-                    writer.add_scalar('loss', loss, n_iter)
-                    # save checkpoint
-                    torch.save(model.state_dict(), './weights/net_'+str(epoch)+'.pth')
-            scheduler.step()
-        writer.close()
+        for index, data in enumerate(train_loader):
+            im, label = data
+            im = im.cuda()
+            label = label.cuda()
+            optimizer.zero_grad()
+            out = model(im)
+            loss = criterion(out, label)
+            loss.backward()
+            optimizer.step()
+            if index % 10 == 0:
+                print("Epoch: [{}/{}][{}/{}]  Loss {:.4f}".format(epoch+1, max_epoch, index+1,
+                                                                              len(train_loader), loss))
+                n_iter = epoch*len(train_loader) + index
+                writer.add_scalar('loss', loss, n_iter)
+        # save checkpoint
+        if (epoch+1) % 1 == 0:
+            torch.save(model.state_dict(), './weights/net_'+str(epoch)+'.pth')
+
+        # valid
+        true_count = 0
+        for index, data in enumerate(valid_loader):
+            model.eval()
+            im, label = data
+            im = im.cuda()
+            out = model(im)
+            out = torch.softmax(out, 1).cpu().detach().numpy()
+            pred_y = np.argmax(out)
+            if pred_y == label:
+                true_count += 1
+        valid_acc = true_count / len(valid_loader)
+        writer.add_scalar('valid acc', valid_acc, epoch)
+
+        scheduler.step()
+    torch.save(model.state_dict(), './weights/last.pth')
+    writer.close()
+
+    # test
+    true_count = 0
+    for index, data in enumerate(test_loader):
+        model.eval()
+        im, label = data
+        im = im.cuda()
+        label = label.cuda()
+        out = model(im)
+        out = torch.softmax(out, 1).cpu().detach().numpy()
+        pred_y = np.argmax(out)
+        if pred_y == label:
+            true_count += 1
+    test_acc = true_count / len(valid_loader) * 100.0
+    print('test acc {.2f}%'.format(test_acc))
 
 
 if __name__ == '__main__':
-    main = Main()
-    # main.deal_with_data()
-    # main.download_data()
-    main.train()
+    train()

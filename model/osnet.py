@@ -291,4 +291,5 @@ def osnet_x1_0(num_classes=1000, pretrained=True, loss='softmax', **kwargs):
                   channels=[64, 256, 384, 512], loss=loss, **kwargs)
     if pretrained:
         init_pretrained_weights(model, 'osnet_x1_0', './weights/pretrained/osnet_x1_0_imagenet.pth')
+        print('load pretrained model success!')
     return model
