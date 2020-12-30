@@ -87,7 +87,7 @@ def train():
             pred_y = np.argmax(out)
             if pred_y == label:
                 true_count += 1
-        valid_acc = true_count / len(valid_loader)
+        valid_acc = true_count / len(valid_loader) * 100.0
         writer.add_scalar('valid acc', valid_acc, epoch)
 
         scheduler.step()
