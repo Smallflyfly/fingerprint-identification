@@ -143,7 +143,10 @@ class OSNet(nn.Module):
         if return_featuremaps:
             return x
         v = self.global_avgpool(x)
-        v = v.view(v.size(0), -1)
+        # v1 = v.view(v.size(0), -1)
+        v = torch.flatten(v, 1)
+        # print(v1.size())
+        # print(v.size())
         if self.fc is not None:
             v = self.fc(v)
         if not self.training:
