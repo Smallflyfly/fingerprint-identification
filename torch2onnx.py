@@ -16,14 +16,14 @@ model_path = './weights/net_49.pth'
 
 def torch2onxx():
     onxx_model = "fingerprint.onnx"
-    dummy_input = torch.randn(1, 1, 192, 206, requires_grad=True)
+    dummy_input = torch.randn(1, 1, 192, 206)
     dataset = FingerPrintDataset()
     model = osnet_x1_0(num_classes=dataset.num_classes)
     model.load_state_dict(torch.load(model_path))
     torch.onnx.export(model,
                                 dummy_input,
                                 onxx_model, verbose=False,
-                                training=False, do_constant_folding=True,
+                                do_constant_folding=False,
                                 input_names=['input'],
                                 output_names=['output']
                                 )

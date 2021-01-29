@@ -27,7 +27,7 @@ class Prediction(FlyAI):
         :return: 模型预测成功之后返回给系统样例 {"label":"1"}
         '''
         dataset = FingerPrintDataset()
-        print(dataset.num_classes)
+        # print(dataset.num_classes)
         model = self.load_model(num_classes=dataset.num_classes)
         model = model.cuda()
         model.eval()
@@ -44,11 +44,15 @@ class Prediction(FlyAI):
         im2 = im2.cuda()
         out1 = model(im1).cpu().detach().numpy()[0]
         out2 = model(im2).cpu().detach().numpy()[0]
+        # print(out1)
+        # print(out2)
         res = feature_compare(out1, out2)
         same = 1 if res > 0.9 else 0
-        return {"label": str(same)}
-
+        # return {"label": str(same)}
+        # return res
+        return out1, out2
 
 if __name__ == '__main__':
     prediction = Prediction()
-    prediction.predict('image/9103.BMP', 'image/12634.BMP')
+    res = prediction.predict('image/771.BMP', 'image/1006.BMP')
+    print(res)
